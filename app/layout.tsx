@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Providers from "./providers";
+import { Providers } from "@/components/providers";
+import { Toaster } from "@/components/ui/toaster";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Interview AI Ready",
-  description: "Prepare for your interviews with AI",
+  description: "AI-powered interview preparation platform",
 };
 
 export default function RootLayout({
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <LayoutWrapper>{children}</LayoutWrapper>
+          <Toaster />
         </Providers>
       </body>
     </html>

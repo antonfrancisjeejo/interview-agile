@@ -5,16 +5,16 @@ import { Button } from "@/components/ui/button";
 import { formatFileSize } from "@/lib/utils";
 
 interface ResumeFile {
-  id: string;
   name: string;
+  lastModified: number;
   size: number;
   type: string;
-  lastModified: number;
+  url?: string;
 }
 
 interface UploadedResumesProps {
   resumes: ResumeFile[];
-  onDelete: (id: string) => void;
+  onDelete: (resume: ResumeFile) => void;
 }
 
 const UploadedResumes = ({ resumes, onDelete }: UploadedResumesProps) => {
@@ -30,9 +30,9 @@ const UploadedResumes = ({ resumes, onDelete }: UploadedResumesProps) => {
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Uploaded Resumes</h3>
       <div className="space-y-2">
-        {resumes.map((resume) => (
+        {resumes.map((resume, index) => (
           <div
-            key={resume.id}
+            key={index}
             className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
           >
             <div className="flex items-center gap-3">
@@ -48,7 +48,7 @@ const UploadedResumes = ({ resumes, onDelete }: UploadedResumesProps) => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onDelete(resume.id)}
+              onClick={() => onDelete(resume)}
               className="text-gray-500 hover:text-red-500"
             >
               <Trash2 className="w-4 h-4" />

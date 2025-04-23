@@ -1,43 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import FileUpload from "./FileUpload";
 import UploadedResumes from "./UploadedResumes";
+import { useResumes } from "@/hooks/useResumes";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ResumeFile {
-  id: string;
   name: string;
+  lastModified: number;
   size: number;
   type: string;
-  lastModified: number;
-  file: File;
+  url?: string;
 }
 
 const ResumeManager = () => {
-  const [resumes, setResumes] = useState<ResumeFile[]>([]);
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    resumes,
+    uploadResume,
+    deleteResume,
+    loading: resumesLoading,
+  } = useResumes();
+  const { toast } = useToast();
 
-  const handleFileUpload = (files: FileList | null) => {
-    if (!files) return;
-
-    const newResumes = Array.from(files).map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified,
-      file,
-    }));
-
-    setResumes((prev) => [...prev, ...newResumes]);
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setLoading(true);
+    try {
+      const file = files[0];
+      await uploadResume(file);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setResumes((prev) => prev.filter((resume) => resume.id !== id));
+  const handleDelete = async (resume: ResumeFile) => {
+    setLoading(true);
+    try {
+      await deleteResume(resume);
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      <FileUpload onUpload={handleFileUpload} />
+      <FileUpload onUpload={handleFileUpload} fileInputRef={fileInputRef} />
       <UploadedResumes resumes={resumes} onDelete={handleDelete} />
     </div>
   );

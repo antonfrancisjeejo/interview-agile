@@ -26,7 +26,6 @@ const InterviewSidebar = ({
             key={participant.id}
             name={participant.name}
             role={participant.role}
-            avatar={participant.avatar}
           />
         ))}
       </div>
