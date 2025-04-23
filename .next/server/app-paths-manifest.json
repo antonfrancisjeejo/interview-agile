@@ -1,6 +1,0 @@
-{
-  "/dashboard/page": "app/dashboard/page.js",
-  "/prompts/page": "app/prompts/page.js",
-  "/interview-questions/page": "app/interview-questions/page.js",
-  "/interviews/page": "app/interviews/page.js"
-}

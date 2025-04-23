@@ -13,8 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useAuth } from "../auth/AuthProvider";
 
 interface Question {
   id: string;
@@ -42,18 +43,29 @@ const SelectQuestionsDialog = ({
   onOpenChange,
   onComplete,
 }: SelectQuestionsDialogProps) => {
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [newQuestionType, setNewQuestionType] = useState<
+    "technical" | "behavioral" | "situational"
+  >("technical");
   const { toast } = useToast();
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     fetchQuestions();
   }, []);
 
   const fetchQuestions = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     const { data, error } = await supabase
       .from("interview_questions")
       .select("*")
+      .eq("user_id", session?.user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -89,6 +101,59 @@ const SelectQuestionsDialog = ({
     });
   };
 
+  const handleAddQuestion = async () => {
+    if (!newQuestion.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a question",
+        variant: "destructive",
+      });
+      return;
+    }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    console.log("session", session);
+
+    const { data, error } = await supabase
+      .from("interview_questions")
+      .insert([
+        {
+          question: newQuestion.trim(),
+          type: newQuestionType,
+          user_id: session?.user?.id,
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.log(error);
+
+      toast({
+        title: "Error",
+        description: "Failed to add question",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (data) {
+      const newQuestionData = {
+        id: data[0].id,
+        question: data[0].question,
+        type: data[0].type as "technical" | "behavioral" | "situational",
+      };
+      setQuestions((prev) => [newQuestionData, ...prev]);
+      setNewQuestion("");
+      toast({
+        title: "Success",
+        description: "Question added successfully",
+      });
+    }
+  };
+
   const handleComplete = () => {
     onComplete(selectedQuestions);
     onOpenChange(false);
@@ -120,6 +185,32 @@ const SelectQuestionsDialog = ({
               <p className="text-sm text-gray-500">
                 Selected questions: {selectedQuestions.length}
               </p>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={newQuestionType}
+                onChange={(e) =>
+                  setNewQuestionType(
+                    e.target.value as "technical" | "behavioral" | "situational"
+                  )
+                }
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="technical">Technical</option>
+                <option value="behavioral">Behavioral</option>
+                <option value="situational">Situational</option>
+              </select>
+              <input
+                type="text"
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                placeholder="Enter new question"
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 flex-1"
+              />
+              <Button onClick={handleAddQuestion} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add
+              </Button>
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Play, Calendar, Clock, FileText } from "lucide-react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import UploadDialog from "@/components/interview/UploadDialog";
 
 interface CompletedInterview {
   id: string;
@@ -25,6 +26,7 @@ export default function InterviewsPage() {
   const { toast } = useToast();
   const [interviews, setInterviews] = useState<CompletedInterview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -90,86 +92,93 @@ export default function InterviewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Completed Interviews</h1>
-          <Button
-            onClick={() => router.push("/start-interview")}
-            className="flex items-center gap-2"
-          >
-            <Play className="h-4 w-4" />
-            Start New Interview
-          </Button>
-        </div>
+    <>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">Completed Interviews</h1>
+            <Button
+              onClick={() => setShowUploadDialog(true)}
+              className="flex items-center gap-2"
+            >
+              <Play className="h-4 w-4" />
+              Start New Interview
+            </Button>
+          </div>
 
-        <div className="grid gap-6">
-          {interviews.length === 0 ? (
-            <Card>
-              <CardContent className="py-8">
-                <p className="text-center text-gray-500">
-                  No completed interviews yet
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            interviews.map((interview) => (
-              <Card key={interview.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{interview.position}</CardTitle>
-                      <div className="flex items-center gap-4 mt-2">
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(interview.date).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <Clock className="h-4 w-4" />
-                          {interview.duration}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        router.push(`/interview/${interview.id}/results`)
-                      }
-                    >
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Overall Score</p>
-                      <p className="text-2xl font-bold text-blue-600">
-                        {interview.overall_score}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Technical Score</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {interview.technical_score}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Communication Score
-                      </p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {interview.communication_score}%
-                      </p>
-                    </div>
-                  </div>
+          <div className="grid gap-6">
+            {interviews.length === 0 ? (
+              <Card>
+                <CardContent className="py-8">
+                  <p className="text-center text-gray-500">
+                    No completed interviews yet
+                  </p>
                 </CardContent>
               </Card>
-            ))
-          )}
+            ) : (
+              interviews.map((interview) => (
+                <Card key={interview.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{interview.position}</CardTitle>
+                        <div className="flex items-center gap-4 mt-2">
+                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <Calendar className="h-4 w-4" />
+                            {new Date(interview.date).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <Clock className="h-4 w-4" />
+                            {interview.duration}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() =>
+                          router.push(`/interview/${interview.id}/results`)
+                        }
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Overall Score</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {interview.overall_score}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Technical Score</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {interview.technical_score}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Communication Score
+                        </p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {interview.communication_score}%
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      <UploadDialog
+        open={showUploadDialog}
+        onOpenChange={setShowUploadDialog}
+      />
+    </>
   );
 }

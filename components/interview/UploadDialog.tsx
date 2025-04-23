@@ -176,7 +176,7 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
     });
 
     setTimeout(() => {
-      window.location.href = "/start-interview";
+      window.location.href = "/interview/23sdf3";
     }, 1000);
   };
 

@@ -120,7 +120,10 @@ export default function InterviewQuestionsContent() {
   };
 
   const handleCreateQuestion = async () => {
-    if (!user?.id) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user?.id) {
       toast({
         title: "Error",
         description: "You must be logged in to create questions",
@@ -137,7 +140,7 @@ export default function InterviewQuestionsContent() {
           {
             question: newQuestion.question,
             type: newQuestion.type,
-            user_id: user.id,
+            user_id: session?.user?.id,
             created_at: new Date().toISOString(),
           },
         ])
