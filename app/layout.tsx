@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/toaster";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import { ReduxProvider } from "@/store/providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,8 +22,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <Providers>
-          <LayoutWrapper>{children}</LayoutWrapper>
-          <Toaster />
+          <ReduxProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
+            <Toaster />
+          </ReduxProvider>
         </Providers>
       </body>
     </html>
