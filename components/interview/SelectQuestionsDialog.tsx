@@ -154,9 +154,38 @@ const SelectQuestionsDialog = ({
     }
   };
 
-  const handleComplete = () => {
-    onComplete(selectedQuestions);
-    onOpenChange(false);
+  const handleComplete = async () => {
+    try {
+      const currentInterviewData = JSON.parse(
+        localStorage.getItem("currentInterviewData") || "{}"
+      );
+      const supabase = createClientComponentClient();
+
+      // Get the full question objects for selected IDs
+      const selectedQuestionTexts = questions
+        .filter((q) => selectedQuestions.includes(q.id))
+        .map((q) => q.question);
+
+      const { error } = await supabase
+        .from("interviews")
+        .update({
+          questions: selectedQuestionTexts,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", currentInterviewData.interviewId);
+
+      if (error) throw error;
+
+      onComplete(selectedQuestions);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error updating interview with questions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save selected questions",
+        variant: "destructive",
+      });
+    }
   };
 
   const getTagColor = (type: Question["type"]) => {

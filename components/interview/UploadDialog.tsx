@@ -160,12 +160,15 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
   const handleQuestionSelectionComplete = (selectedQuestions: string[]) => {
     setShowQuestionSelection(false);
 
+    // Get the stored interview data
+    const currentInterviewData = JSON.parse(
+      localStorage.getItem("currentInterviewData") || "{}"
+    );
+
     localStorage.setItem(
       "currentInterviewData",
       JSON.stringify({
-        jobDescription,
-        resume: selectedResume,
-        persona: selectedPersona,
+        ...currentInterviewData,
         questions: selectedQuestions,
       })
     );
@@ -176,13 +179,65 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
     });
 
     setTimeout(() => {
-      window.location.href = "/interview/23sdf3";
+      window.location.href = `/interview/${currentInterviewData.interviewId}`;
     }, 1000);
   };
 
-  const handleInitialSubmit = () => {
+  const handleInitialSubmit = async () => {
     if (jobDescription && selectedResume && selectedPersona) {
-      setShowQuestionSelection(true);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user?.id) {
+          toast({
+            title: "Error",
+            description: "Please log in to continue",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Create a new interview record
+        const { data: interview, error } = await supabase
+          .from("interviews")
+          .insert([
+            {
+              user_id: session.user.id,
+              job_description: jobDescription,
+              resume_url: selectedResume,
+              persona_id: selectedPersona,
+              status: "pending",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Store the interview ID in localStorage for later use
+        localStorage.setItem(
+          "currentInterviewData",
+          JSON.stringify({
+            jobDescription,
+            resume: selectedResume,
+            persona: selectedPersona,
+            interviewId: interview.id,
+          })
+        );
+
+        setShowQuestionSelection(true);
+      } catch (error) {
+        console.error("Error creating interview:", error);
+        toast({
+          title: "Error",
+          description: "Failed to create interview session",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -229,14 +284,16 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
                     <SelectValue placeholder="Choose a resume" />
                   </SelectTrigger>
                   <SelectContent>
-                    {resumes.map((resume, index) => (
-                      <SelectItem key={index} value={resume.name}>
-                        <div className="flex items-center gap-2">
-                          {getFileIcon(resume.name)}
-                          <span className="truncate">{resume.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {resumes
+                      .filter((resume) => resume.url)
+                      .map((resume, index) => (
+                        <SelectItem key={index} value={resume.url!}>
+                          <div className="flex items-center gap-2">
+                            {getFileIcon(resume.name)}
+                            <span className="truncate">{resume.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

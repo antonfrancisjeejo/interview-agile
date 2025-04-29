@@ -19,7 +19,7 @@ const FileUpload = ({ onUpload, fileInputRef }: FileUploadProps) => {
     [onUpload]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
@@ -71,7 +71,6 @@ const FileUpload = ({ onUpload, fileInputRef }: FileUploadProps) => {
           accept=".pdf,.doc,.docx"
           onChange={handleFileChange}
           ref={fileInputRef}
-          {...getInputProps()}
         />
       </label>
     </div>

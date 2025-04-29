@@ -7,7 +7,7 @@ export const getAnalyticsPrompt = createAsyncThunk(
   "getAnalyticsPrompt",
   async (id: number, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.get(`/company-user/prompts/${id}`);
+      const res = await axiosInstance.get(`/company-user/prompts/0`);
       return res.data;
     } catch (error: any) {
       ERROR_TOASTER(error);

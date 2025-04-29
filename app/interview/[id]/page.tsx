@@ -4,7 +4,7 @@ import React, { Suspense, useState, useEffect } from "react";
 import { OngoingCall } from "@/components/assessment/ongoing-call/OngoingCall";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-full">
@@ -18,6 +18,8 @@ const LoadingFallback = () => (
 const InterviewPage = () => {
   const [timer, setTimer] = useState("00:00");
   const router = useRouter();
+  const params = useParams();
+  const interviewId = params.id as string;
 
   const persona = {
     id: "1",
@@ -89,6 +91,7 @@ const InterviewPage = () => {
           <div className="w-full max-w-[calc(100vw-18rem)] px-6">
             <Suspense fallback={<LoadingFallback />}>
               <OngoingCall
+                interviewId={interviewId}
                 persona={persona}
                 user={userProfile}
                 onShowTranscript={showTranscript}

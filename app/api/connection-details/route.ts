@@ -34,6 +34,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url); // This is how you can get the query parameters from the request URL
     const level = searchParams.get("level") ?? "0";
     const origin = searchParams.get("origin") as string;
+    const interviewId = searchParams.get("interviewId") as string;
 
     // Generate participant token
     const participantIdentity = `voice_assistant_user_${Math.floor(
@@ -46,7 +47,8 @@ export async function GET(req: Request) {
       { identity: participantIdentity },
       roomName,
       level,
-      origin
+      origin,
+      interviewId
     );
 
     // Return connection details
@@ -72,18 +74,22 @@ function createParticipantToken(
   userInfo: AccessTokenOptions,
   roomName: string,
   level: string,
-  origin: string
+  origin: string,
+  interviewId: string
 ) {
   const at = new AccessToken(API_KEY, API_SECRET, {
     ...userInfo,
     ttl: "15m",
-    metadata: "human",
+    metadata: JSON.stringify({
+      interviewId: interviewId,
+    }),
     attributes: {
       // name: "arun kumar mahato kushwaha",
       // role: "admin", // Example role
       level: level, // Example level
       type: "human",
       origin: origin,
+      interviewId: "121317",
       // prompt: "Welcome to the AI conversation!", // Example prompt
     },
   });
