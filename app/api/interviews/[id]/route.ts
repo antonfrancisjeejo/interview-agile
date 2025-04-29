@@ -1,16 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
-import {
-  createClientComponentClient,
-  createRouteHandlerClient,
-} from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-// import { supabase } from "@/lib/supabase/client
+import { supabase } from "@/lib/supabase/client";
 
-export const supabase = createClient(
-  "https://koygfeonfswgqhoqqbnm.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtveWdmZW9uZnN3Z3Fob3FxYm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3Nzk1MTgsImV4cCI6MjA2MDM1NTUxOH0.0ZcGjQKR625ARlyqVcqd_4Fmy43onIjLQdnWhfRNs1k"
-);
+// export const supabase = createClient(
+//   "https://koygfeonfswgqhoqqbnm.supabase.co",
+//   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtveWdmZW9uZnN3Z3Fob3FxYm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3Nzk1MTgsImV4cCI6MjA2MDM1NTUxOH0.0ZcGjQKR625ARlyqVcqd_4Fmy43onIjLQdnWhfRNs1k"
+// );
 
 export async function GET(
   request: Request,
