@@ -39,7 +39,7 @@ export const getPersonaById = createAsyncThunk(
   "getPersonaById",
   async (id: number, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.get(`/company-user/prompts/${id}`);
+      const res = await axiosInstance.get(`/company-user/prompts/0`);
       return res?.data?.data;
     } catch (error: any) {
       ERROR_TOASTER(error);

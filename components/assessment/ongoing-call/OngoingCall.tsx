@@ -49,6 +49,7 @@ interface OngoingCallProps {
   persona: any;
   user: User;
   onShowTranscript?: () => void;
+  interviewId: any;
 }
 
 type SummarizeRef = {
@@ -59,6 +60,7 @@ export function OngoingCall({
   persona,
   user,
   onShowTranscript,
+  interviewId,
 }: OngoingCallProps) {
   const { callState, toggleTranscript, toggleMute } = useCallState(
     persona.name
@@ -204,14 +206,15 @@ export function OngoingCall({
     );
 
     // Add query parameters here
-    url.searchParams.append("level", searchParams.get("id") || "0");
+    url.searchParams.append("level", interviewId);
     url.searchParams.append("origin", window.location.origin);
+    url.searchParams.append("interviewId", interviewId);
 
     const response = await fetch(url.toString());
     const connectionDetailsData = await response.json();
     updateRoomName(connectionDetailsData.roomName);
     updateConnectionDetails(connectionDetailsData);
-  }, [level]);
+  }, [interviewId]);
 
   // useEffect(() => {
   //   if (roomName && !isRecording) {
