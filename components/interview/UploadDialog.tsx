@@ -37,6 +37,8 @@ import {
 } from "lucide-react";
 import SelectQuestionsDialog from "./SelectQuestionsDialog";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import axios from "axios";
 
 interface UploadDialogProps {
   open: boolean;
@@ -54,6 +56,24 @@ interface SelectQuestionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete: (selectedQuestions: string[]) => void;
+}
+
+interface Question {
+  id: string;
+  question: string;
+  category: string;
+  difficulty: string;
+}
+
+interface QuestionSet {
+  technicalQuestions: string[];
+  experienceQuestions: string[];
+  behavioralQuestions: string[];
+  clarificationQuestions: string[];
+}
+
+interface SelectedQuestions {
+  [key: string]: boolean;
 }
 
 const getFileIcon = (filename: string) => {
@@ -109,6 +129,12 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
   const [selectedPersona, setSelectedPersona] = useState<string>("");
   const [showQuestionSelection, setShowQuestionSelection] = useState(false);
   const supabase = createClientComponentClient();
+  const [questions, setQuestions] = useState<QuestionSet | null>(null);
+  const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestions>(
+    {}
+  );
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
 
   useEffect(() => {
     const fetchPersonas = async () => {
@@ -157,35 +183,62 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
     setSelectedPersona(value);
   };
 
-  const handleQuestionSelectionComplete = (selectedQuestions: string[]) => {
-    setShowQuestionSelection(false);
+  const handleQuestionSelectionComplete = async () => {
+    try {
+      setIsStartingInterview(true);
+      // Get the stored interview data
+      const currentInterviewData = JSON.parse(
+        localStorage.getItem("currentInterviewData") || "{}"
+      );
 
-    // Get the stored interview data
-    const currentInterviewData = JSON.parse(
-      localStorage.getItem("currentInterviewData") || "{}"
-    );
+      // Get all selected questions
+      const selectedQuestionList = Object.entries(selectedQuestions)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([question]) => question);
 
-    localStorage.setItem(
-      "currentInterviewData",
-      JSON.stringify({
-        ...currentInterviewData,
-        questions: selectedQuestions,
-      })
-    );
+      const supabase = createClientComponentClient();
 
-    toast({
-      title: "Interview starting",
-      description: "Preparing your interview session...",
-    });
+      const { error } = await supabase
+        .from("interviews")
+        .update({
+          questions: selectedQuestionList,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", currentInterviewData.interviewId);
 
-    setTimeout(() => {
-      window.location.href = `/interview/${currentInterviewData.interviewId}`;
-    }, 1000);
+      if (error) throw error;
+
+      toast({
+        title: "Interview starting",
+        description: "Preparing your interview session...",
+      });
+
+      setTimeout(() => {
+        window.location.href = `/interview/${currentInterviewData.interviewId}`;
+      }, 1000);
+    } catch (error) {
+      console.error("Error starting interview:", error);
+      toast({
+        title: "Error",
+        description: "Failed to start interview session",
+        variant: "destructive",
+      });
+    } finally {
+      setIsStartingInterview(false);
+    }
+  };
+
+  const handleQuestionSelect = (question: string) => {
+    setSelectedQuestions((prev) => ({
+      ...prev,
+      [question]: !prev[question],
+    }));
   };
 
   const handleInitialSubmit = async () => {
     if (jobDescription && selectedResume && selectedPersona) {
       try {
+        setIsLoadingQuestions(true);
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -229,6 +282,12 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
           })
         );
 
+        // Fetch questions with job description and resume information
+        const { data: fetchedQuestions } = await axios.post("/api/questions", {
+          jobDescription,
+          resumeUrl: selectedResume,
+        });
+        setQuestions(fetchedQuestions);
         setShowQuestionSelection(true);
       } catch (error) {
         console.error("Error creating interview:", error);
@@ -237,6 +296,8 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
           description: "Failed to create interview session",
           variant: "destructive",
         });
+      } finally {
+        setIsLoadingQuestions(false);
       }
     }
   };
@@ -353,20 +414,128 @@ const UploadDialog = ({ open, onOpenChange }: UploadDialogProps) => {
                 resumesLoading ||
                 !jobDescription ||
                 !selectedResume ||
-                !selectedPersona
+                !selectedPersona ||
+                isLoadingQuestions
               }
             >
-              Continue to Questions
+              {isLoadingQuestions ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Loading Questions...
+                </>
+              ) : (
+                "Continue to Questions"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <SelectQuestionsDialog
+      <Dialog
         open={showQuestionSelection}
         onOpenChange={() => setShowQuestionSelection(false)}
-        onComplete={handleQuestionSelectionComplete}
-      />
+      >
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Questions</DialogTitle>
+            <DialogDescription>
+              Choose the questions you want to practice with
+            </DialogDescription>
+          </DialogHeader>
+          {isLoadingQuestions ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : questions ? (
+            <div className="space-y-6">
+              {Object.entries(questions).map(([category, questionList]) => (
+                <div key={category} className="space-y-2">
+                  <h3 className="text-lg font-semibold capitalize">
+                    {category.replace(/([A-Z])/g, " $1").trim()}
+                  </h3>
+                  <div className="grid gap-4">
+                    {questionList.map((question: string, index: number) => (
+                      <Card key={`${category}-${index}`}>
+                        <CardHeader className="flex flex-row items-center space-x-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedQuestions[question] || false}
+                            onChange={() => handleQuestionSelect(question)}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <CardTitle className="text-lg">{question}</CardTitle>
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500">
+              No questions available
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={handleQuestionSelectionComplete}
+              disabled={
+                Object.values(selectedQuestions).filter(Boolean).length === 0 ||
+                isStartingInterview
+              }
+            >
+              {isStartingInterview ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Starting Interview...
+                </>
+              ) : (
+                "Start Interview"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
