@@ -37,6 +37,7 @@ import {
 import { AgentProvider } from "@/hooks/use-agent";
 import { LoadingAnalytics } from "./LoadingAnalytics";
 import { AnalyticsState } from "@/store/services/analytics/types";
+import InterviewResults from "@/components/interview/InterviewResults";
 
 interface User {
   name: string;
@@ -49,7 +50,8 @@ interface OngoingCallProps {
   persona: any;
   user: User;
   onShowTranscript?: () => void;
-  interviewId: any;
+  interviewId: string;
+  handleEndInterview: () => void;
 }
 
 type SummarizeRef = {
@@ -61,6 +63,7 @@ export function OngoingCall({
   user,
   onShowTranscript,
   interviewId,
+  handleEndInterview,
 }: OngoingCallProps) {
   const { callState, toggleTranscript, toggleMute } = useCallState(
     persona.name
@@ -72,19 +75,15 @@ export function OngoingCall({
 
   // const isMobile = useIsMobile();
   const dispatch = useAppDispatch();
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
-
-  // const { id } = router.query; //
-
-  // console.log("id", router);
-
   const searchParams = useSearchParams();
-  const level = searchParams.get("level") ?? "medium";
-  const name = searchParams.get("name") ?? "Dojo AI";
-  const mood = searchParams.get("mood") ?? "Neutral";
-  const image = searchParams.get("image") ?? "";
-  const personaId = searchParams.get("id") ?? "0";
+
+  const level = searchParams?.get("level") ?? "medium";
+  const name = searchParams?.get("name") ?? "Dojo AI";
+  const mood = searchParams?.get("mood") ?? "Neutral";
+  const image = searchParams?.get("image") ?? "";
+  const personaId = searchParams?.get("id") ?? "0";
 
   const [callTime, setCallTime] = useState(0);
   const [userCallTime, setUserCallTime] = useState(0);
@@ -106,9 +105,10 @@ export function OngoingCall({
   const [actualRoomName, updateActualRoomName] = useState<string>("");
 
   const handleEndCall = async () => {
-    if (callTime < 1) {
-      router.push(`/dashboard`);
-    }
+    // if (callTime < 1) {
+    //   router.push(`/dashboard`);
+    // }
+    handleEndInterview();
     dispatch(setAnalysisCallTime(callTime));
     dispatch(setAnalyticsUserCallTime(userCallTime));
     dispatch(setAnalyticsLongestMonologue(longestMonologue));
@@ -223,11 +223,11 @@ export function OngoingCall({
   // }, [roomName, connectionDetails]);
 
   useEffect(() => {
-    if (id) {
+    if (params?.id && !Array.isArray(params.id)) {
       onConnectButtonClicked();
       dispatch(resetAllAnalytics());
     }
-  }, [id]);
+  }, [params?.id]);
 
   useEffect(() => {
     if (!ringtoneRef.current) {
@@ -376,7 +376,12 @@ export function OngoingCall({
             </div>
           )}
           {iscallEnd && callTime > 1 && !req_success.get && (
-            <LoadingAnalytics error={error} handleSummarize={handleSummarize} />
+            <>
+              <LoadingAnalytics
+                error={error}
+                handleSummarize={handleSummarize}
+              />
+            </>
           )}
 
           <AgentProvider>
@@ -387,6 +392,7 @@ export function OngoingCall({
               error={error}
               ref={summarizeFunctionRef}
               updateActualRoomName={updateActualRoomName}
+              interviewId={interviewId}
             />
           </AgentProvider>
         </div>

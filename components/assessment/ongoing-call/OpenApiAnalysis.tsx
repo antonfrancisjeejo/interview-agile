@@ -24,6 +24,7 @@ import { calculateWPM } from "@/utils/math";
 import { ANALYTICS_ERROR } from "@/utils/constant";
 import { useParams } from "next/navigation";
 import { useConnectionState, useRoomContext } from "@livekit/components-react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 type OpenApiAnalysisProps = {
   iscallEnd: boolean;
@@ -31,6 +32,7 @@ type OpenApiAnalysisProps = {
   setError: (error: any) => void;
   error: string;
   updateActualRoomName: (roomName: string) => void;
+  interviewId: string;
 };
 
 export type OpenApiAnalysisRef = {
@@ -38,10 +40,55 @@ export type OpenApiAnalysisRef = {
 };
 
 const OpenApiAnalysis = forwardRef<OpenApiAnalysisRef, OpenApiAnalysisProps>(
-  ({ iscallEnd, roomName, setError, error, updateActualRoomName }, ref) => {
+  (
+    { iscallEnd, roomName, setError, error, updateActualRoomName, interviewId },
+    ref
+  ) => {
     const { displayTranscriptions } = useAgent();
     const insightRef = useRef(null);
     const dispatch = useAppDispatch();
+    const supabase = createClientComponentClient();
+
+    const transformTranscriptions = (transcriptions: any[]) => {
+      return transcriptions.map(({ segment, participant }) => ({
+        segment,
+        participant: {
+          isAgent: participant?.isAgent,
+        },
+      }));
+    };
+
+    const storeTranscriptionsInDB = async (transcriptions: any[]) => {
+      try {
+        const formattedData = transcriptions.map(
+          ({ segment, participant }) => ({
+            segment_id: segment.id,
+            segment_text: segment.text,
+            start_time: segment.startTime,
+            end_time: segment.endTime,
+            is_final: segment.final,
+            language: segment.language,
+            first_received_time: segment.firstReceivedTime,
+            last_received_time: segment.lastReceivedTime,
+            is_agent: participant.isAgent,
+            updated_at: new Date().toISOString(),
+          })
+        );
+
+        const { data, error } = await supabase
+          .from("interviews")
+          .update({ transcriptions: formattedData })
+          .eq("id", interviewId);
+        console.log("formattedData", formattedData);
+        console.log("data", data);
+        console.log("error", error);
+        console.log("interviewId", interviewId);
+
+        if (error) throw error;
+      } catch (error) {
+        console.error("Error storing transcriptions:", error);
+      }
+    };
 
     const { prompts }: PromptState = useAppSelector((store: RootState) => {
       return store.PromptSlice;
@@ -59,12 +106,6 @@ const OpenApiAnalysis = forwardRef<OpenApiAnalysisRef, OpenApiAnalysisProps>(
     });
 
     useEffect(() => {
-      if (iscallEnd) {
-        dispatch(setTranscription(displayTranscriptions));
-      }
-    }, [iscallEnd]);
-
-    useEffect(() => {
       if (id) {
         dispatch(getAnalyticsPrompt(Number(id)));
       }
@@ -78,6 +119,22 @@ const OpenApiAnalysis = forwardRef<OpenApiAnalysisRef, OpenApiAnalysisProps>(
         updateActualRoomName(room.name);
       }
     }, [connectionState, room]);
+
+    useEffect(() => {
+      if (iscallEnd) {
+        const transformedData = transformTranscriptions(displayTranscriptions);
+        dispatch(setTranscription(transformedData));
+        storeTranscriptionsInDB(displayTranscriptions);
+      }
+    }, [iscallEnd]);
+
+    useEffect(() => {
+      if (displayTranscriptions && displayTranscriptions.length > 0) {
+        const transformedData = transformTranscriptions(displayTranscriptions);
+        dispatch(setTranscription(transformedData));
+        storeTranscriptionsInDB(displayTranscriptions);
+      }
+    }, [displayTranscriptions, dispatch]);
 
     const handleSummarize = async () => {
       setError(null);
