@@ -70,45 +70,38 @@ export async function POST(request: NextRequest) {
     const resumeContent = await extractResumeContent(resumeUrl);
     console.log("Resume content extracted successfully");
 
-    const prompt = `You are a senior hiring manager and domain expert tasked with evaluating job candidates.
-    Given a job description and a candidate's resume, generate insightful interview questions that assess:
+    const prompt = `You are a senior hiring manager and domain expert tasked with evaluating job candidates. Given a job description and a candidate's resume, generate insightful interview questions that assess:
 
-    The candidate's technical proficiency (based on tools, frameworks, or methodologies in the resume vs. job requirements)
+The candidate's technical proficiency (based on tools, frameworks, or methodologies in the resume vs. job requirements).
 
-    The candidate's core competencies (project experience, decision-making, problem-solving)
+The candidate's core competencies (project experience, decision-making, problem-solving).
 
-    Behavioral and soft skill aspects (teamwork, leadership, adaptability, etc.)
+Behavioral and soft skill aspects (teamwork, leadership, adaptability, etc.).
 
-    Gaps, ambiguities, or impressive highlights worth exploring from the resume
+Gaps, ambiguities, or impressive highlights worth exploring from the resume.
 
-    📄 Input Job Description:
-    ${jobDescription}
+📄 Input Job Description: ${jobDescription}
 
-    📄 Input Resume Content:
-    ${resumeContent}
+📄 Input Resume Content: ${resumeContent}
 
-    🎯 Output Format (JSON):
-    Return only a JSON object structured as follows:
+🎯 Output Format (JSON): Return a single array of questions (with a minimum of 5 and a maximum of 8 questions), structured as follows:
 
-    {
-      "technicalQuestions": [
-        "Question 1 about a specific technology or technical decision...",
-        "Question 2..."
-      ],
-      "experienceQuestions": [
-        "Question 1 about project experience, job transitions, etc.",
-        "Question 2..."
-      ],
-      "behavioralQuestions": [
-        "Tell me about a time you had to adapt quickly to change...",
-        "How do you handle feedback and collaboration in teams?"
-      ],
-      "clarificationQuestions": [
-        "You mentioned XYZ in your resume — can you elaborate?",
-        "There's a gap between 2021 and 2023 — can you explain what you were doing?"
-      ]
-    }
-    ⚠️ Do not invent data. Base all questions only on actual resume content and job description. If resume is vague or lacks detail, include clarification questions to explore further in the interview.`;
+{
+  "questions": [
+    "Question 1 about a specific technology or technical decision...",
+    "Question 2...",
+    "Question 3...",
+    "Question 4...",
+    "Question 5..."
+  ]
+}
+⚠️ Important:
+
+Do not invent any data.
+
+Only base the questions on the actual content of the resume and the job description.
+
+Include questions to explore gaps, ambiguities, or impressive highlights in the resume if needed.`;
 
     console.log("Making API call to generate questions...");
     const url = "https://52nvm81yvqinq8-80.proxy.runpod.net/api/generate";
@@ -128,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     const questions = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(questions);
+    return NextResponse.json(questions.questions);
   } catch (error) {
     console.error("Error in POST /api/questions:", error);
     return NextResponse.json(

@@ -5,6 +5,7 @@ import { OngoingCall } from "@/components/assessment/ongoing-call/OngoingCall";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter, useParams } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-full">
@@ -15,11 +16,14 @@ const LoadingFallback = () => (
   </div>
 );
 
-const InterviewPage = () => {
+export default function InterviewPage() {
   const [timer, setTimer] = useState("00:00");
   const router = useRouter();
   const params = useParams();
-  const interviewId = params.id as string;
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const persona = {
     id: "1",
@@ -38,6 +42,10 @@ const InterviewPage = () => {
   };
 
   useEffect(() => {
+    if (!params?.id) {
+      setError("Invalid interview ID");
+      return;
+    }
     const startTime = new Date();
     const interval = setInterval(() => {
       const now = new Date();
@@ -54,54 +62,97 @@ const InterviewPage = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleAnalysis = async (interviewId: string) => {
+    try {
+      setIsAnalyzing(true);
+      const response = await fetch(`/api/interviews/${interviewId}/analysis`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze interview");
+      }
+
+      router.push(`/interview/${interviewId}/results`);
+    } catch (error) {
+      console.error("Error analyzing interview:", error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze interview",
+        variant: "destructive",
+      });
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleEndInterview = () => {
-    router.push("/dashboard");
+    if (!params?.id || Array.isArray(params.id)) {
+      toast({
+        title: "Error",
+        description: "Invalid interview ID",
+        variant: "destructive",
+      });
+      return;
+    }
+    handleAnalysis(params.id);
   };
 
   const showTranscript = () => {};
 
-  return (
-    <div className="h-screen">
-      {/* Header */}
-      <header className="bg-white border-b fixed right-0 left-64 top-0 z-10">
-        <div className="flex items-center justify-between h-16 px-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-purple-50 px-3 py-1.5 rounded-full">
-              <span className="text-purple-600 text-sm">{timer}</span>
-            </div>
-            <h1 className="text-xl font-semibold text-purple-700">
-              Technical Interview Practice
-            </h1>
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">Error</h2>
+            <p className="mt-2 text-gray-600">{error}</p>
+            <Button onClick={() => router.push("/interviews")} className="mt-4">
+              Back to Interviews
+            </Button>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleEndInterview}
-            className="flex items-center gap-2"
-          >
-            <X className="h-4 w-4" />
-            End
-          </Button>
         </div>
-      </header>
+      </div>
+    );
+  }
 
-      {/* Main Content */}
-      <main className="pl-64 pt-16 h-[calc(100vh-4rem)]">
-        <div className="h-full flex items-center justify-center">
-          <div className="w-full max-w-[calc(100vw-18rem)] px-6">
-            <Suspense fallback={<LoadingFallback />}>
-              <OngoingCall
-                interviewId={interviewId}
-                persona={persona}
-                user={userProfile}
-                onShowTranscript={showTranscript}
-              />
-            </Suspense>
+  if (isAnalyzing) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col items-center justify-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            <p className="text-lg text-purple-600">
+              Analyzing your interview...
+            </p>
+            <p className="text-sm text-gray-500">This may take a few moments</p>
           </div>
         </div>
-      </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div className="text-2xl font-bold">{timer}</div>
+          <Button onClick={handleEndInterview}>End Interview</Button>
+        </div>
+        <Suspense fallback={<LoadingFallback />}>
+          {params?.id && !Array.isArray(params.id) && (
+            <OngoingCall
+              interviewId={params.id}
+              persona={persona}
+              user={userProfile}
+              onShowTranscript={showTranscript}
+              handleEndInterview={handleEndInterview}
+            />
+          )}
+        </Suspense>
+      </div>
     </div>
   );
-};
-
-export default InterviewPage;
+}

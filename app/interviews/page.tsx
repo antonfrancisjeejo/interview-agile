@@ -12,13 +12,36 @@ import UploadDialog from "@/components/interview/UploadDialog";
 interface CompletedInterview {
   id: string;
   user_id: string;
-  position: string;
+  company: string | null;
   date: string;
-  duration: number;
-  overall_score: number;
-  communication_score: number;
-  technical_score: number;
+  duration: number | null;
+  status: string;
+  overall_score: number | null;
+  technical_score: number | null;
+  communication_score: number | null;
+  questions_answered: number | null;
+  conversation_transcript: any[];
+  recording_url: string | null;
   created_at: string;
+  updated_at: string;
+  resume_url: string | null;
+  job_description: string;
+  questions: string;
+  persona_id: string;
+  transcriptions:
+    | {
+        end_time: number;
+        is_agent: boolean;
+        is_final: boolean;
+        language: string;
+        segment_id: string;
+        start_time: number;
+        updated_at: string;
+        segment_text: string;
+        last_received_time: number;
+        first_received_time: number;
+      }[]
+    | null;
 }
 
 export default function InterviewsPage() {
@@ -37,12 +60,9 @@ export default function InterviewsPage() {
     try {
       setLoading(true);
 
-      // Get the current user's session
       const {
         data: { session },
       } = await supabase.auth.getSession();
-
-      console.log(session);
 
       if (!session) {
         toast({
@@ -53,15 +73,20 @@ export default function InterviewsPage() {
         return;
       }
 
-      // Fetch all completed interviews for the current user
       const { data, error } = await supabase
-        .from("completed_interviews")
+        .from("interviews")
         .select("*")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
-        throw error;
+        console.error("Error fetching interviews:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load interviews",
+          variant: "destructive",
+        });
+        return;
       }
 
       setInterviews(data || []);
@@ -79,7 +104,7 @@ export default function InterviewsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 pl-[300px]">
         <div className="max-w-4xl mx-auto">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
@@ -92,59 +117,70 @@ export default function InterviewsPage() {
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Completed Interviews</h1>
-            <Button
-              onClick={() => setShowUploadDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Play className="h-4 w-4" />
-              Start New Interview
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-6 pl-[300px]">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Interviews</h1>
+          <Button
+            onClick={() => setShowUploadDialog(true)}
+            className="flex items-center gap-2"
+          >
+            <Play className="h-4 w-4" />
+            Start New Interview
+          </Button>
+        </div>
 
-          <div className="grid gap-6">
-            {interviews.length === 0 ? (
-              <Card>
-                <CardContent className="py-8">
-                  <p className="text-center text-gray-500">
-                    No completed interviews yet
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              interviews.map((interview) => (
-                <Card key={interview.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{interview.position}</CardTitle>
-                        <div className="flex items-center gap-4 mt-2">
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(interview.date).toLocaleDateString()}
-                          </div>
+        <div className="grid gap-6">
+          {interviews.length === 0 ? (
+            <Card>
+              <CardContent className="py-8">
+                <p className="text-center text-gray-500">No interviews yet</p>
+              </CardContent>
+            </Card>
+          ) : (
+            interviews.map((interview) => (
+              <Card key={interview.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {interview.company || "Interview"}
+                        <span
+                          className={`text-sm px-2 py-1 rounded-full ${
+                            interview.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {interview.status}
+                        </span>
+                      </CardTitle>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(interview.date).toLocaleDateString()}
+                        </div>
+                        {interview.duration && (
                           <div className="flex items-center gap-1 text-sm text-gray-500">
                             <Clock className="h-4 w-4" />
-                            {interview.duration}
+                            {interview.duration} minutes
                           </div>
-                        </div>
+                        )}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() =>
-                          router.push(`/interview/${interview.id}/results`)
-                        }
-                      >
-                        <FileText className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </CardHeader>
-                  <CardContent>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() =>
+                        router.push(`/interview/${interview.id}/results`)
+                      }
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {interview.overall_score !== null && (
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">Overall Score</p>
@@ -167,11 +203,37 @@ export default function InterviewsPage() {
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
+                  )}
+                  {interview.transcriptions &&
+                    interview.transcriptions.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-500 mb-2">
+                          Recent Conversation
+                        </p>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          {interview.transcriptions
+                            .slice(-2)
+                            .map((transcript, index) => (
+                              <div key={index} className="mb-2">
+                                <p
+                                  className={`text-sm ${
+                                    transcript.is_agent
+                                      ? "text-blue-600"
+                                      : "text-gray-800"
+                                  }`}
+                                >
+                                  {transcript.is_agent ? "Interviewer" : "You"}:{" "}
+                                  {transcript.segment_text}
+                                </p>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
 
@@ -179,6 +241,6 @@ export default function InterviewsPage() {
         open={showUploadDialog}
         onOpenChange={setShowUploadDialog}
       />
-    </>
+    </div>
   );
 }
