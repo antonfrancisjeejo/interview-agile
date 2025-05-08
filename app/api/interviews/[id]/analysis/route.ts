@@ -175,6 +175,13 @@ Now here is the input list (in JSON format):
       overall_feedback: e.overall_feedback,
     }));
 
+    const { data: existingEvaluation } = await supabase
+      .from("interviews")
+      .update({
+        status: "completed",
+      })
+      .eq("id", params.id);
+
     const { error: insertError } = await supabase
       .from("interview_evaluations")
       .insert(formatted);
